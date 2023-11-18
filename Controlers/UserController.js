@@ -27,20 +27,38 @@ router.get("/getUsers", verifyToken("654cf05e3c6a0da072527383"), async (req, res
 
 router.get("/getUser", verifyToken("654cf05e3c6a0da072527383"), async (req, res) => {
     const user = await userModel.find({ 'Name': req.query.Name })
-    .populate({
-        path: 'Role',
-        model: roleModel,
-        select: 'Name Description -_id',
-        populate: {
-            path: 'Permissions',
-            model: permissionModel,
+        .populate({
+            path: 'Role',
+            model: roleModel,
             select: 'Name Description -_id',
-        }
-    })
-    .exec();
+            populate: {
+                path: 'Permissions',
+                model: permissionModel,
+                select: 'Name Description -_id',
+            }
+        })
+        .exec();
     if (!user) return res.status(200).send('There is no Item')
 
     return res.status(200).send(user);
+});
+
+router.get("/getMyUserInfo", verifyToken("654cf05e3c6a0da072527383"), async (req, res) => {
+    const allUsers = await userModel.find({ _id: req.user.userId })
+        .populate({
+            path: 'Role',
+            model: roleModel,
+            select: 'Name Description -_id',
+            populate: {
+                path: 'Permissions',
+                model: permissionModel,
+                select: 'Name Description -_id',
+            }
+        })
+        .exec();
+    if (!allUsers) return res.status(200).send('There is no Item')
+
+    return res.status(200).send(allUsers);
 });
 
 router.post('/CreateUser', verifyToken("654d43d93c6a0da07252738a"), async (req, res) => {

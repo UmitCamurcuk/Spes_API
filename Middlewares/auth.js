@@ -26,8 +26,11 @@ const verifyToken = (permissionCode) => {
       return res.status(401).send("Invalid Token");
     }
     try {
-      const isPermission = search(permissionCode, req.user.userrole);
-      if (isPermission === false) { throw new Error('Permission Denied !'); } // Break this try, even though there is no exception here.
+      if (permissionCode !== null) {
+        const isPermission = search(permissionCode, req.user.userrole);
+        if (isPermission === false) { throw new Error('Permission Denied !'); }
+      }
+      // Break this try, even though there is no exception here.
     } catch (err) {
       return res.status(200).send("Permission Denied !!");
     }

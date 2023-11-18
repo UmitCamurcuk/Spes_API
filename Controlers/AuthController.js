@@ -8,7 +8,7 @@ const permissionModel = require('../Models/PermissionModel');
 
 
 router.post("/Login", async (req, res) => {
-    const user = await userModel.findOne({ 'UserName': req.body.UserName })
+    const user = await userModel.findOne({ 'UserName': req.body.UserName , 'Password' : req.body.Password })
         .populate({
             path: 'Role',
             model: roleModel,
@@ -20,7 +20,11 @@ router.post("/Login", async (req, res) => {
             }
         })
         .exec();
-    if (!user) return res.status(200).send('There is no Item')
+    if (!user) return res.status(200).send({
+        Status: 400,
+        Error:'Invalid Username Or Password',
+        Message : 'Invalid Username or Password'
+    })
     const token = jwt.sign(
         {
             userId: user._id,

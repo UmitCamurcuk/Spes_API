@@ -60,4 +60,12 @@ router.post('/CreateItemType', verifyToken("654d443f3c6a0da0725273a2"), async (r
     newItemType.save();
     return res.status(200).send('ItemType Saved')
 })
+
+router.get("/getNavigationLinks", verifyToken(null), async (req, res) => {
+    const itemType = await itemTypeModel.find({ 'ShowOnNavbar' : true })
+        .exec();
+    if (!itemType) return res.status(200).send('There is no ItemType')
+
+    return res.status(200).send(itemType);
+});
 module.exports = router;
