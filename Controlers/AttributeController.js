@@ -39,9 +39,7 @@ router.post("/AttributesTableData", verifyToken("654d44613c6a0da0725273ab"), asy
             if (filterCriteria[key] === '') {
                 delete filterCriteria[key];
             } else {
-
                 filterCriteria[key] = { $regex: '.*' + filterCriteria[key] + '.*', $options: 'i' }
-
             }
         });
         const allAttributes = await attributeModel.find(filterCriteria)

@@ -20,7 +20,7 @@ const userSchema = new Schema({
         ref: 'itemtypes'
     }],
     isRequired: {
-        type: String,
+        type: Boolean,
         default: false
     },
     CreatedUser: {
