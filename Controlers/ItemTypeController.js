@@ -99,6 +99,7 @@ router.post('/CreateItemType', verifyToken("654d443f3c6a0da0725273a2"), async (r
             Name: req.body.Name,
             Code: req.body.Code,
             Attributes: req.body.Attributes,
+            Families: req.body.Families,
             ShowOnNavbar: req.body.ShowOnNavbar,
             CreatedUser: req.user.userId,
             UpdatedUser: req.user.userId,

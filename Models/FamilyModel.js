@@ -11,9 +11,18 @@ const familySchema = new Schema({
         type: String,
         required : true
     },
-    ItemTypes: [{
+    ItemType: {
         type: ObjectId,
-        ref: 'itemtypes'
+        ref: 'itemtypes',
+        required:false
+    },
+    AttributeGroups: [{
+        type: ObjectId,
+        ref: 'attributegroups'
+    }],
+    Attributes: [{
+        type: ObjectId,
+        ref: 'attributes'
     }],
     CreatedUser : {
         type: ObjectId,

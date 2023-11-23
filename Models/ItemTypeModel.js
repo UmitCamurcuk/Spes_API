@@ -15,6 +15,10 @@ const userSchema = new Schema({
         type: ObjectId,
         ref: 'attributes'
     }],
+    Families: [{
+        type: ObjectId,
+        ref: 'families'
+    }],
     ShowOnNavbar: {
         type: Boolean,
     },

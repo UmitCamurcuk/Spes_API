@@ -34,16 +34,23 @@ router.get("/getFamily", verifyToken("654d44733c6a0da0725273b7"), async (req, re
 
 router.post('/CreateFamily', verifyToken("654d44763c6a0da0725273ba"), async (req, res) => {
     //Check is attribute created already before ?
+    console.log(1)
     var family = await familyModel.find({
         Code: req.body.Code
     })
-    if (family.length > 0) return res.status(200).send('This Item Code is Already Taken.');
+    if (family.length > 0) return  res.status(200).send({
+        Code: 500,
+        Status: 'FALSE',
+        Message: 'This Family Code Already Taken'
+    })
+    console.log(req.body.Attributes)
     const newFamily = new familyModel(
         {
             Name: req.body.Name,
             Code: req.body.Code,
-            ItemType: req.body.ItemType,
-            Category: req.body.Category,
+            ItemType: req.body.ItemType === '' && null,
+            AttributeGroups: req.body.AttributeGroups,
+            Attributes: req.body.Attributes,
             CreatedUser: req.user.userId,
             UpdatedUser: req.user.userId,
             isActive: true
@@ -51,6 +58,11 @@ router.post('/CreateFamily', verifyToken("654d44763c6a0da0725273ba"), async (req
     )
 
     newFamily.save();
-    return res.status(200).send('Family Saved')
+    return res.status(200).send({
+        Code: 200,
+        Status: 'OK',
+        Message: 'Family Saved',
+        Data : newFamily
+    })
 })
 module.exports = router;
