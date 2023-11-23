@@ -2,7 +2,7 @@ const { ObjectId } = require('mongodb');
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const userSchema = new Schema({
+const attributeSchema = new Schema({
     Name: {
         type: String,
         required: true
@@ -19,9 +19,25 @@ const userSchema = new Schema({
         type: ObjectId,
         ref: 'itemtypes'
     }],
+    AttributeGroups: [{
+        type: ObjectId,
+        ref: 'attributegroups'
+    }],
+    AttributeValidations: [{
+        Validation: {
+            type: ObjectId,
+            ref: 'attributevalidations'
+        },
+        Value: {
+            type: String
+        }
+    }],
     isRequired: {
         type: Boolean,
         default: false
+    },
+    isActive: {
+        type: Boolean,
     },
     CreatedUser: {
         type: ObjectId,
@@ -31,9 +47,6 @@ const userSchema = new Schema({
         type: ObjectId,
         ref: 'users'
     },
-    isActive: {
-        type: Boolean,
-    },
 }, { timestamps: true })
 
-module.exports = mongoose.model('Attributes', userSchema);
+module.exports = mongoose.model('Attributes', attributeSchema);

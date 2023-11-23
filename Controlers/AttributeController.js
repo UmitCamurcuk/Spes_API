@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const attributeModel = require('../Models/AttributesModel');
+const attributeValidationsModel = require('../Models/AttributeValidationsModel');
+const attributeGroupModel = require('../Models/AttributeGroupsModel')
 const userModel = require('../Models/UserModel');
+const roleModel = require('../Models/RoleModel');
 const verifyToken = require("../Middlewares/auth");
 
 router.get("/getAttributes", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
@@ -9,22 +12,57 @@ router.get("/getAttributes", verifyToken("654d44613c6a0da0725273ab"), async (req
         .populate({
             path: 'CreatedUser UpdatedUser',
             model: userModel,
-            select: 'Name LastName Role'
+            select: 'Name LastName Role -_id'
+        })
+        .populate({
+            path: 'AttributeGroups',
+            model: attributeGroupModel,
+            select: 'Name Code isActive  -_id'
+        })
+        .populate({
+            path: 'AttributeValidations.Validation',
+            model: attributeValidationsModel,
+            select: 'Name Code Type -_id'
         })
         .exec();
     if (!allAttributes) return res.status(200).send('There is no Attributes')
     return res.status(200).send(allAttributes);
 });
 
+router.get("/getAttributeGroups", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+    const allAttributeGroups = await attributeGroupModel.find()
+        .populate({
+            path: 'CreatedUser UpdatedUser',
+            model: userModel,
+            select: 'Name LastName Role -_id'
+        })
+        .exec();
+    if (!allAttributeGroups) return res.status(200).send('There is no Attributes')
+    return res.status(200).send(allAttributeGroups);
+});
+
+router.get("/getAttributeValidation", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+    const attributeValidations = await attributeValidationsModel.find({'AttributeType' : req.query.Type})
+        .populate({
+            path: 'CreatedUser UpdatedUser',
+            model: userModel,
+            select: 'Name LastName Role -_id'
+        })
+        .exec();
+    if (!attributeValidations) return res.status(200).send('There is no Attributes')
+    return res.status(200).send(attributeValidations);
+});
+
+
 router.get("/getAttribute", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
-    const attribute = await attributeModel.findOne({ 'Code': req.query.Code })
+    const attribute = await attributeModel.findOne({ '_id': req.query._id })
         .populate({
             path: 'CreatedUser UpdatedUser',
             model: userModel,
             select: 'Name LastName Role'
         })
         .exec();
-    if (!attribute) return res.status(200).send('There is no Item')
+    if (!attribute) return res.status(200).send('There is no Attributes')
 
     return res.status(200).send(attribute);
 });
@@ -43,7 +81,7 @@ router.post("/AttributesTableData", verifyToken("654d44613c6a0da0725273ab"), asy
             }
         });
         const allAttributes = await attributeModel.find(filterCriteria)
-            .sort(sortObject)
+            .sort({ CreatedAt: -1 })
             .skip((page - 1) * pageSize)
             .limit(parseInt(pageSize))
             .populate({
@@ -78,19 +116,86 @@ router.post('/CreateAttribute', verifyToken("654d44643c6a0da0725273ae"), async (
     var attribute = await attributeModel.find({
         Code: req.body.Code
     })
-    if (attribute.length > 0) return res.status(200).send('This Attribute Code is Already Taken.');
+    if (attribute.length > 0) return res.status(200).send({
+        Code: 401,
+        Status: 'FALSE',
+        Message: 'This Attribute code already taken.',
+        Data : {}
+    })
     const newAttribute = new attributeModel(
         {
             Name: req.body.Name,
             Code: req.body.Code,
             Type: req.body.Type,
             ItemTypes: req.body.ItemTypes,
+            AttributeGroups: req.body.AttributeGroups,
+            AttributeValidations: req.body.AttributeValidations,
             isRequired: req.body.isRequired,
+            isActive: req.body.isActive,
             CreatedUser: req.user.userId,
             UpdatedUser: req.user.userId
         }
     )
     newAttribute.save();
-    return res.status(200).send('User Saved')
+    return res.status(200).send({
+        Code: 200,
+        Status: 'OK',
+        Message: 'Attribute Saved',
+        Data : newAttribute
+    })
+})
+module.exports = router;
+
+
+
+router.post('/CreateAttributeValidations', verifyToken("654d44643c6a0da0725273ae"), async (req, res) => {
+    //Check is attribute created already before ?
+    var attributeValidations = await attributeValidationsModel.find({
+        Code: req.body.Code
+    })
+    if (attributeValidations.length > 0) return res.status(200).send('This Attribute Validations Code is Already Taken.');
+    const newAttributeValidations = new attributeValidationsModel(
+        {
+            Name: req.body.Name,
+            Code: req.body.Code,
+            Type: req.body.Type,
+            Attributes: req.body?.Attributes,
+            CreatedUser: req.user.userId,
+            UpdatedUser: req.user.userId
+        }
+    )
+    newAttributeValidations.save();
+    return res.status(200).send({
+        Code: 200,
+        Status: 'OK',
+        Message: 'Attribute Validations Saved'
+    })
+})
+module.exports = router;
+
+
+router.post('/CreateAttributeGroup', verifyToken("654d44643c6a0da0725273ae"), async (req, res) => {
+    //Check is attribute created already before ?
+    var attributeGroup = await attributeGroupModel.find({
+        Code: req.body.Code
+    })
+    if (attributeGroup.length > 0) return res.status(200).send('This Attribute Validations Code is Already Taken.');
+    const newAttributeGroup = new attributeGroupModel(
+        {
+            Name: req.body.Name,
+            Code: req.body.Code,
+            Attributes: req.body?.Attributes,
+            ItemTypes: req.body.ItemTypes,
+            isActive: req.body.isActive,
+            CreatedUser: req.user.userId,
+            UpdatedUser: req.user.userId
+        }
+    )
+    newAttributeGroup.save();
+    return res.status(200).send({
+        Code: 200,
+        Status: 'OK',
+        Message: 'Attribute Group Saved'
+    })
 })
 module.exports = router;
