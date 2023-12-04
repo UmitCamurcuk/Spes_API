@@ -75,4 +75,46 @@ router.post('/CreateItem', verifyToken('654d442f3c6a0da072527396'), async (req, 
     newItem.save();
     return res.status(200).send('User Saved')
 })
+
+
+router.post("/ItemsTableData", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+    try {
+        const { page, pageSize, orderBy, order } = req.body;
+        const sortObject = {};
+        sortObject[orderBy] = order === 'desc' ? -1 : 1;
+        let filterCriteria = req.body.filters;
+        Object.keys(filterCriteria).forEach((key, value) => {
+            if (filterCriteria[key] === '') {
+                delete filterCriteria[key];
+            } else {
+                filterCriteria[key] = { $regex: '.*' + filterCriteria[key] + '.*', $options: 'i' }
+            }
+        });
+        const allItems = await itemModel.find(filterCriteria)
+            .sort({ CreatedAt: -1 })
+            .skip((page - 1) * pageSize)
+            .limit(parseInt(pageSize))
+            .populate({
+                path: 'CreatedUser UpdatedUser',
+                model: userModel,
+                select: 'Name LastName Role'
+            })
+            .exec();
+        const totalRows = await itemModel.countDocuments();
+        const response = {
+            data: {
+                rows: allItems,
+                page: page,
+                rowsPerPage: pageSize,
+                sortObject: sortObject,
+                totalRows: totalRows
+            },
+        }
+        if (allItems.length === 0) return res.status(200).send(response);
+        return res.status(200).send(response);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 module.exports = router;

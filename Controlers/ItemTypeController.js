@@ -1,9 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const attributeModel = require('../Models/AttributesModel');
+const attributeGroupModel = require('../Models/AttributeGroupsModel');
 const userModel = require('../Models/UserModel');
+const attributeValidationsModel = require('../Models/AttributeValidationsModel')
+const familyModel = require('../Models/FamilyModel');
 const itemTypeModel = require('../Models/ItemTypeModel');
 const verifyToken = require("../Middlewares/auth");
+const RoleModel = require("../Models/RoleModel");
 
 router.get("/getItemTypes", verifyToken("654d443c3c6a0da07252739f"), async (req, res) => {
     const allItemTypes = await itemTypeModel.find()
@@ -23,21 +27,121 @@ router.get("/getItemTypes", verifyToken("654d443c3c6a0da07252739f"), async (req,
 });
 
 router.get("/getItemType", verifyToken("654d443c3c6a0da07252739f"), async (req, res) => {
-    const itemType = await itemTypeModel.findOne({ 'Code' : req.query.Code })
+    const itemType = await itemTypeModel.findOne({ 'Code': req.query.Code })
         .populate({
             path: 'CreatedUser UpdatedUser',
             model: userModel,
-            select: 'Name LastName Role'
+            select: 'Name LastName Role',
         })
         .populate({
             path: 'Attributes',
             model: attributeModel,
-            select: 'Name Code Type isRequired'
+            populate: {
+                path: 'AttributeValidations.Validation',
+                model: attributeValidationsModel,
+            }
+        })
+
+        .populate({
+            path: 'Families',
+            model: familyModel,
+            populate: {
+                path: 'AttributeGroups',
+                model: attributeGroupModel,
+                populate: {
+                    path: 'Attributes',
+                    model: attributeModel,
+                    populate: {
+                        path: 'AttributeValidations.Validation',
+                        model: attributeValidationsModel,
+                    }
+                }
+            }
         })
         .exec();
-    if (!itemType) return res.status(200).send('There is no ItemType')
+    if (!itemType) return res.status(200).send('There is no ItemType');
 
-    return res.status(200).send(itemType);
+    const families = [];
+    const attributeGroups = [];
+    const attributes = [];
+
+    itemType.Families?.forEach(familyVal => {
+        familyVal.AttributeGroups.forEach(attrGroup => {
+            attrGroup.Attributes.forEach(attr => {
+                const attributeValidations = [];
+                attr.AttributeValidations.forEach(attrVal => {
+                    attributeValidations.push({
+                        _id: attrVal.Validation._id,
+                        Name: attrVal.Validation.Name,
+                        Code: attrVal.Validation.Code,
+                        Type: attrVal.Validation.Type,
+                        Value: attrVal.Value
+                    })
+                })
+                attributes.push({
+                    _id: attr._id,
+                    Name: attr.Name,
+                    Code: attr.Code,
+                    Type: attr.Type,
+                    ItemTypes: attr.ItemTypes,
+                    AttributeValidations: attributeValidations,
+                    isRequired: attr.isRequired,
+                })
+            })
+            attributeGroups.push({
+                _id: attrGroup._id,
+                Name: attrGroup.Name,
+                Code: attrGroup.Code,
+                ItemTypes: attrGroup.ItemTypes,
+                Attributes: attributes,
+                isActive: attrGroup.isActive,
+                CreatedUser: attrGroup.CreatedUser,
+            })
+            families.push({
+                _id: familyVal._id,
+                Name: familyVal.Name,
+                Code: familyVal.Code,
+                ItemType: familyVal.ItemType,
+                AttributeGroups: attributeGroups,
+            })
+        })
+    })
+
+    const otherAttr = [];
+    itemType.Attributes?.forEach(item => {
+        const tempAttrVal = [];
+        item.AttributeValidations.forEach(attrValidation => {
+            tempAttrVal.push({
+                Name: attrValidation.Validation.Name,
+                Code: attrValidation.Validation.Code,
+                Type: attrValidation.Validation.Type,
+                Value: attrValidation.Value
+            })
+        })
+        otherAttr.push({
+            Name: item.Name,
+            Code: item.Code,
+            Type: item.Type,
+            AttributeValidations: tempAttrVal,
+            isRequired: item.isRequired,
+            CreatedUser: item.CreatedUser,
+        })
+    })
+
+    const response = {
+        Code: itemType.Code,
+        Name: itemType.Name,
+        Families: families,
+        OtherAttributes: otherAttr,
+        ShowOnNavbar: itemType.ShowOnNavbar,
+        isActive: itemType.isActive,
+        UpdatedUser: itemType.UpdatedUser.Name + ' ' + itemType.UpdatedUser.LastName,
+        updatedAt: itemType.updatedAt,
+        CreatedUser: itemType.CreatedUser.Name + ' ' + itemType.CreatedUser.LastName,
+        createdAt: itemType.createdAt,
+    }
+
+    return res.status(200).send(response);
 });
 
 router.post("/ItemTypesTableData", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
@@ -113,7 +217,7 @@ router.post('/CreateItemType', verifyToken("654d443f3c6a0da0725273a2"), async (r
 
 
 router.get("/getNavigationLinks", verifyToken(null), async (req, res) => {
-    const itemType = await itemTypeModel.find({ 'ShowOnNavbar' : true })
+    const itemType = await itemTypeModel.find({ 'ShowOnNavbar': true })
         .exec();
     if (!itemType) return res.status(200).send('There is no ItemType')
 

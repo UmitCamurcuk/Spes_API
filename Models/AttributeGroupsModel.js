@@ -18,7 +18,7 @@ const attributeGroupsSchema = new Schema({
     }],
     ItemTypes: [{
         type: ObjectId,
-        ref: 'attributegroups',
+        ref: 'itemtypes',
         required: false
     }],
     isActive: {

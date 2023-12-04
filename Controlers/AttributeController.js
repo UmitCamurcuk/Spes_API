@@ -25,8 +25,31 @@ router.get("/getAttributes", verifyToken("654d44613c6a0da0725273ab"), async (req
             select: 'Name Code Type -_id'
         })
         .exec();
-    if (!allAttributes) return res.status(200).send('There is no Attributes')
-    return res.status(200).send(allAttributes);
+    if (!allAttributes) return res.status(200).send('There is no Attributes');
+
+    const response = [];
+    allAttributes.forEach(item => {
+        const tempAttrVal = [];
+        item.AttributeValidations.forEach(attrValidation => {
+            tempAttrVal.push({
+                Name: attrValidation.Validation.Name,
+                Code: attrValidation.Validation.Code,
+                Type: attrValidation.Validation.Type,
+                Value: attrValidation.Value
+            })
+        })
+        response.push({
+            Name: item.Name,
+            Code: item.Code,
+            Type: item.Type,
+            ItemTypes: item.ItemTypes,
+            AttributeGroups: item.AttributeGroups,
+            AttributeValidations: tempAttrVal,
+            isRequired: item.isRequired,
+            CreatedUser: item.CreatedUser,
+        })
+    })
+    return res.status(200).send(response);
 });
 
 router.get("/getAttributeGroups", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
@@ -36,13 +59,56 @@ router.get("/getAttributeGroups", verifyToken("654d44613c6a0da0725273ab"), async
             model: userModel,
             select: 'Name LastName Role -_id'
         })
+        .populate({
+            path: 'Attributes',
+            model: attributeModel,
+            populate: {
+                path: 'AttributeValidations.Validation',
+                model: attributeValidationsModel,
+                select: 'Name Code Type -_id'
+            }
+        })
         .exec();
-    if (!allAttributeGroups) return res.status(200).send('There is no Attributes')
-    return res.status(200).send(allAttributeGroups);
+    if (!allAttributeGroups) return res.status(200).send('There is no Attributes');
+
+    
+    const response = [];
+    const attributes = [];
+    allAttributeGroups.forEach(item => {
+        item.Attributes.forEach(attr => {
+            const attributeValidations = [];
+            attr.AttributeValidations.forEach(attrVal => {
+                attributeValidations.push({
+                    Name: attrVal.Validation.Name,
+                    Code: attrVal.Validation.Code,
+                    Type: attrVal.Validation.Type,
+                    Value: attrVal.Value
+                })
+            })
+            attributes.push({
+                Name: attr.Name,
+                Code: attr.Code,
+                Type: attr.Type,
+                ItemTypes: attr.ItemTypes,
+                AttributeValidations: attributeValidations,
+                isRequired: attr.isRequired,
+            })
+        })
+        response.push({
+            Name: item.Name,
+            Code: item.Code,
+            ItemTypes: item.ItemTypes,
+            Attributes: attributes,
+            isActive: item.isActive,
+            CreatedUser: item.CreatedUser,
+        })
+    })
+
+    return res.status(200).send(response);
 });
 
 router.get("/getAttributeValidation", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
-    const attributeValidations = await attributeValidationsModel.find({'AttributeType' : req.query.Type})
+    const attributeValidations = await attributeValidationsModel.find({ 'AttributeType': req.query.Type })
         .populate({
             path: 'CreatedUser UpdatedUser',
             model: userModel,
@@ -105,10 +171,6 @@ router.post("/AttributesTableData", verifyToken("654d44613c6a0da0725273ab"), asy
     } catch (error) {
         res.status(500).json({ error: 'Internal Server Error' });
     }
-
-
-
-
 });
 
 router.post('/CreateAttribute', verifyToken("654d44643c6a0da0725273ae"), async (req, res) => {
@@ -120,7 +182,7 @@ router.post('/CreateAttribute', verifyToken("654d44643c6a0da0725273ae"), async (
         Code: 401,
         Status: 'FALSE',
         Message: 'This Attribute code already taken.',
-        Data : {}
+        Data: {}
     })
     const newAttribute = new attributeModel(
         {
@@ -141,7 +203,7 @@ router.post('/CreateAttribute', verifyToken("654d44643c6a0da0725273ae"), async (
         Code: 200,
         Status: 'OK',
         Message: 'Attribute Saved',
-        Data : newAttribute
+        Data: newAttribute
     })
 })
 module.exports = router;
