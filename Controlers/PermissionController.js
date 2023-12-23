@@ -18,7 +18,6 @@ router.get("/getPermissions", verifyToken, async (req, res) => {
             }
         })
         .exec();
-        console.log(allPermissions)
     if (!allPermissions) return res.status(200).send('There is no Permission')
     return res.status(200).send(allPermissions);
 });
