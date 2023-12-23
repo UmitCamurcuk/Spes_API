@@ -64,10 +64,41 @@ router.get("/getAttribute", verifyToken("654d44613c6a0da0725273ab"), async (req,
             model: userModel,
             select: 'Name LastName Role'
         })
+        .populate({
+            path: 'AttributeGroups',
+            model: attributeGroupModel,
+            select: 'Name Code isActive  -_id'
+        })
+        .populate({
+            path: 'AttributeValidations.Validation',
+            model: attributeValidationsModel,
+            select: 'Name Code Type -_id'
+        })
         .exec();
     if (!attribute) return res.status(200).send('There is no Attributes')
 
-    return res.status(200).send(attribute);
+    const tempAttrVal = [];
+    attribute.AttributeValidations.forEach(attrValidation => {
+        tempAttrVal.push({
+            Name: attrValidation.Validation.Name,
+            Code: attrValidation.Validation.Code,
+            Type: attrValidation.Validation.Type,
+            Value: attrValidation.Value
+        })
+    })
+    const response = [];
+    response.push({
+        Name: attribute.Name,
+        Code: attribute.Code,
+        Type: attribute.Type,
+        ItemTypes: attribute.ItemTypes,
+        AttributeGroups: attribute.AttributeGroups,
+        AttributeValidations: tempAttrVal,
+        isRequired: attribute.isRequired,
+        CreatedUser: attribute.CreatedUser,
+    })
+
+    return res.status(200).send(response);
 });
 
 router.post("/AttributesTableData", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
@@ -91,6 +122,11 @@ router.post("/AttributesTableData", verifyToken("654d44613c6a0da0725273ab"), asy
                 path: 'CreatedUser UpdatedUser',
                 model: userModel,
                 select: 'Name LastName Role'
+            })
+            .populate({
+                path: 'AttributeGroups',
+                model: attributeGroupModel,
+                select: 'Name -_id'
             })
             .exec();
         const totalRows = await attributeModel.countDocuments();
@@ -149,7 +185,7 @@ router.post('/CreateAttribute', verifyToken("654d44643c6a0da0725273ae"), async (
             if (!attrGroup) {
                 console.error(`Attribute Group with id ${item} not found.`);
                 continue;
-            } 
+            }
             // Array'e newAttributeId'yi ekle
             attrGroup.Attributes.push(newAttributeId);
             // Değişiklikleri kaydet
