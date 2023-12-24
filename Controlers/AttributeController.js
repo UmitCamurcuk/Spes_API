@@ -67,7 +67,6 @@ router.get("/getAttribute", verifyToken("654d44613c6a0da0725273ab"), async (req,
         .populate({
             path: 'AttributeGroups',
             model: attributeGroupModel,
-            select: 'Name Code isActive  -_id'
         })
         .populate({
             path: 'AttributeValidations.Validation',
@@ -86,8 +85,7 @@ router.get("/getAttribute", verifyToken("654d44613c6a0da0725273ab"), async (req,
             Value: attrValidation.Value
         })
     })
-    const response = [];
-    response.push({
+     const  response = {
         Name: attribute.Name,
         Code: attribute.Code,
         Type: attribute.Type,
@@ -96,7 +94,7 @@ router.get("/getAttribute", verifyToken("654d44613c6a0da0725273ab"), async (req,
         AttributeValidations: tempAttrVal,
         isRequired: attribute.isRequired,
         CreatedUser: attribute.CreatedUser,
-    })
+    }
 
     return res.status(200).send(response);
 });
