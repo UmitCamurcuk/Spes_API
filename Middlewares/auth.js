@@ -27,12 +27,15 @@ const verifyToken = (permissionCode) => {
     }
     try {
       if (permissionCode !== null) {
-        const isPermission = search(permissionCode, req.user.userrole);
-        if (isPermission === false) { throw new Error('Permission Denied !'); }
+        const isPermission = req.user.userrole.find(item => item._id === permissionCode);
+        if (!isPermission) { throw new Error('Permission Denied !'); }
       }
       // Break this try, even though there is no exception here.
     } catch (err) {
-      return res.status(200).send("Permission Denied !!");
+      return res.status(200).send({
+        Code: 401,
+        Message:'You cannot make this action.'
+      });
     }
     return next();
   }

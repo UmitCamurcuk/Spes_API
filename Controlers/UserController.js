@@ -6,7 +6,7 @@ const permissionModel = require('../Models/PermissionModel');
 const verifyToken = require("../Middlewares/auth");
 
 
-router.get("/getUsers", verifyToken("654cf05e3c6a0da072527383"), async (req, res) => {
+router.get("/getUsers", verifyToken(null), async (req, res) => {
     const allUsers = await userModel.find()
         .populate({
             path: 'Role',
@@ -25,7 +25,7 @@ router.get("/getUsers", verifyToken("654cf05e3c6a0da072527383"), async (req, res
     return res.status(200).send(allUsers);
 });
 
-router.get("/getUser", verifyToken("654cf05e3c6a0da072527383"), async (req, res) => {
+router.get("/getUser", verifyToken(null), async (req, res) => {
     const user = await userModel.find({ 'Name': req.query.Name })
         .populate({
             path: 'Role',
@@ -43,7 +43,7 @@ router.get("/getUser", verifyToken("654cf05e3c6a0da072527383"), async (req, res)
     return res.status(200).send(user);
 });
 
-router.get("/getMyUserInfo", verifyToken("654cf05e3c6a0da072527383"), async (req, res) => {
+router.get("/getMyUserInfo", verifyToken(null), async (req, res) => {
     const allUsers = await userModel.find({ _id: req.user.userId })
         .populate({
             path: 'Role',
@@ -61,7 +61,7 @@ router.get("/getMyUserInfo", verifyToken("654cf05e3c6a0da072527383"), async (req
     return res.status(200).send(allUsers);
 });
 
-router.post('/CreateUser', verifyToken("654d43d93c6a0da07252738a"), async (req, res) => {
+router.post('/CreateUser', verifyToken(null), async (req, res) => {
     //Check is user created already before ? 
 
     var user = await userModel.find({
@@ -92,4 +92,49 @@ router.post('/CreateUser', verifyToken("654d43d93c6a0da07252738a"), async (req, 
     newUser.save();
     return res.status(200).send('User Saved')
 })
+
+router.post("/SystemUsersTableData", verifyToken(null), async (req, res) => {
+    try {
+        const { page, pageSize, orderBy, order } = req.body;
+        const sortObject = {};
+        sortObject[orderBy] = order === 'desc' ? -1 : 1;
+        let filterCriteria = req.body.filters;
+        Object.keys(filterCriteria).forEach((key, value) => {
+            if (filterCriteria[key] === '') {
+                delete filterCriteria[key];
+            } else {
+                filterCriteria[key] = { $regex: '.*' + filterCriteria[key] + '.*', $options: 'i' }
+            }
+        });
+        const allUsers = await userModel.find(filterCriteria)
+            .sort({ CreatedAt: -1 })
+            .skip((page - 1) * pageSize)
+            .limit(parseInt(pageSize))
+            .populate({
+                path: 'Role',
+                model: roleModel,
+                select: 'Name Description -_id',
+                populate: {
+                    path: 'Permissions',
+                    model: permissionModel,
+                    select: 'Name Description -_id',
+                }
+            })
+            .exec();
+        const totalRows = await userModel.countDocuments();
+        const response = {
+            data: {
+                rows: allUsers,
+                page: page,
+                rowsPerPage: pageSize,
+                sortObject: sortObject,
+                totalRows: totalRows
+            },
+        }
+        if (allUsers.length === 0) return res.status(200).send(response);
+        return res.status(200).send(response);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 module.exports = router;

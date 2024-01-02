@@ -41,3 +41,5 @@ const PermissionRoute = require("./Controlers/PermissionController");
 app.use("/Permission", PermissionRoute);
 const RoleRoute = require("./Controlers/RoleController");
 app.use("/Role", RoleRoute);
+const History = require("./Controlers/HistoryController");
+app.use("/History", History);

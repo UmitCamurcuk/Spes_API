@@ -4,14 +4,14 @@ const attributeModel = require('../Models/AttributesModel');
 const attributeValidationsModel = require('../Models/AttributeValidationsModel');
 const attributeGroupModel = require('../Models/AttributeGroupsModel')
 const userModel = require('../Models/UserModel');
-const roleModel = require('../Models/RoleModel');
 const verifyToken = require("../Middlewares/auth");
+const HistoryModel = require("../Models/HistoryModel");
 
 
 /////////////////////////////////////////////////////////////////////////// ATTRIBUTE //////////////////////////////////////////////////////////////////////////////////////////
 
 
-router.get("/getAttributes", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+router.get("/getAttributes", verifyToken("65945466f508cdc5c4e46650"), async (req, res) => {
     const allAttributes = await attributeModel.find()
         .populate({
             path: 'CreatedUser UpdatedUser',
@@ -56,8 +56,7 @@ router.get("/getAttributes", verifyToken("654d44613c6a0da0725273ab"), async (req
     return res.status(200).send(response);
 });
 
-
-router.get("/getAttribute", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+router.get("/getAttribute", verifyToken("65945466f508cdc5c4e46650"), async (req, res) => {
     const attribute = await attributeModel.findOne({ '_id': req.query._id })
         .populate({
             path: 'CreatedUser UpdatedUser',
@@ -87,6 +86,7 @@ router.get("/getAttribute", verifyToken("654d44613c6a0da0725273ab"), async (req,
         })
     })
     const response = {
+        _id: attribute._id,
         Name: attribute.Name,
         Code: attribute.Code,
         Type: attribute.Type,
@@ -100,7 +100,212 @@ router.get("/getAttribute", verifyToken("654d44613c6a0da0725273ab"), async (req,
     return res.status(200).send(response);
 });
 
-router.post("/AttributesTableData", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+router.post('/CreateAttribute', verifyToken("65945286f508cdc5c4e46605"), async (req, res) => {
+    //Check is attribute created already before ?
+    var attribute = await attributeModel.find({
+        Code: req.body.Code
+    })
+    if (attribute.length > 0) return res.status(200).send({
+        Code: 401,
+        Status: 'FALSE',
+        Message: 'This Attribute code already taken.',
+        Data: {}
+    })
+    const newAttribute = new attributeModel(
+        {
+            Name: req.body.Name,
+            Code: req.body.Code,
+            Type: req.body.Type,
+            ItemTypes: req.body.ItemTypes,
+            AttributeGroups: req.body.AttributeGroups,
+            AttributeValidations: req.body.AttributeValidations,
+            isRequired: req.body.isRequired,
+            isActive: req.body.isActive,
+            CreatedUser: req.user.userId,
+            UpdatedUser: req.user.userId
+        }
+    )
+    newAttribute.save();
+    const newAttributeId = newAttribute._id;
+
+    if (req.body.AttributeGroups.length > 0) {
+        // req.body.AttributeGroups içindeki her bir öğe üzerinde dön
+        for (const item of req.body.AttributeGroups) {
+            // attributeGroupModel'den belgeyi bul ve bekleyerek al
+            const attrGroup = await attributeGroupModel.findOne({ '_id': item });
+            // attrGroup bulunamadıysa devam et
+            if (!attrGroup) {
+                console.error(`Attribute Group with id ${item} not found.`);
+                continue;
+            }
+            // Array'e newAttributeId'yi ekle
+            attrGroup.Attributes.push(newAttributeId);
+            // Değişiklikleri kaydet
+            await attrGroup.save();
+        }
+    }
+
+    const attributeGroupsNames = []; // Boş bir dizi oluştur
+    // req.body.AttributeGroups içindeki her bir AttributeGroup için dön
+    for (const groupId of req.body.AttributeGroups) {
+        // groupId'yi kullanarak AttributeGroup'u bul ve adını al
+        const attributeGroup = await attributeGroupModel.findById(groupId);
+        if (attributeGroup) {
+            attributeGroupsNames.push(attributeGroup.Name);
+        }
+    }
+
+    const NewAttributeHistory = new HistoryModel({
+        entityId: newAttributeId,
+        entityType: 'Attribute',
+        Description:'Attribute Creation',
+        Code: '1011',
+        ChangedValues: {
+            Name: { oldValue: null, newValue: req.body.Name },
+            Code: { oldValue: null, newValue: req.body.Code },
+            Type: { oldValue: null, newValue: req.body.Type },
+            ItemTypes: { oldValue: [], newValue: req.body.ItemTypes },
+            AttributeGroups: { oldValue: [], newValue: attributeGroupsNames },
+            AttributeValidations: { oldValue: [], newValue: attributeGroupsNames },
+            isRequired: { oldValue: null, newValue: req.body.isRequired },
+            isActive: { oldValue: null, newValue: req.body.isActive },
+        },
+        Comment: null,
+        CreatedUser: req.user.userId,
+        UpdatedUser: req.user.userId
+    })
+    NewAttributeHistory.save();
+
+    return res.status(200).send({
+        Code: 200,
+        Status: 'OK',
+        Message: 'Attribute Saved',
+        Data: newAttribute
+    })
+});
+
+router.put('/UpdateAttribute', verifyToken("659452caf508cdc5c4e46608"), async (req, res) => {
+    //Check is attribute created already before ?
+    const attributeId = req.body._id;
+
+    try {
+        // var olan özniteliği bul
+        const existingAttribute = await attributeModel.findById(attributeId);
+
+        // öznitelik bulunamazsa hata döndür
+        if (!existingAttribute) {
+            return res.status(404).json({
+                Code: 404,
+                Status: 'FALSE',
+                Message: 'Attribute not found.',
+                Data: {}
+            });
+        }
+        const newAttributeGroupIds = req.body.AttributeGroups || [];
+        const oldAttributeGroupIds = existingAttribute.AttributeGroups || [];
+        // özniteliği güncelle
+        existingAttribute.Name = req.body.Name || existingAttribute.Name;
+        existingAttribute.Code = req.body.Code || existingAttribute.Code;
+        existingAttribute.Type = req.body.Type || existingAttribute.Type;
+        existingAttribute.ItemTypes = req.body.ItemTypes || existingAttribute.ItemTypes;
+        existingAttribute.AttributeGroups = req.body.AttributeGroups || existingAttribute.AttributeGroups;
+        existingAttribute.AttributeValidations = req.body.AttributeValidations || existingAttribute.AttributeValidations;
+        existingAttribute.isRequired = req.body.isRequired || existingAttribute.isRequired;
+        existingAttribute.isActive = req.body.isActive || existingAttribute.isActive;
+        existingAttribute.UpdatedUser = req.user.userId;
+
+        // attribute grubunu değiştirdiyse, mevcut gruplardan çıkar
+        oldAttributeGroupIds.forEach(async (groupId) => {
+            if (!newAttributeGroupIds.includes(groupId.toString())) {
+                // Attribute'ü eski AttributeGroup'tan çıkar
+                await attributeGroupModel.findByIdAndUpdate(groupId, {
+                    $pull: { Attributes: attributeId },
+                });
+            }
+        });
+
+        // attribute grubunu değiştirdiyse, yeni gruplara eklenir
+        newAttributeGroupIds.forEach(async (groupId) => {
+            if (!oldAttributeGroupIds.includes(groupId.toString())) {
+                // Attribute'ü yeni AttributeGroup'a ekler
+                await attributeGroupModel.findByIdAndUpdate(groupId, {
+                    $push: { Attributes: attributeId },
+                });
+            }
+        });
+
+        // güncellenmiş özniteliği kaydet
+        attributeModel.updateOne({ _id: attributeId }, existingAttribute)
+            .then(result => {
+                console.error('Güncellenen Data:', result);
+            })
+            .catch(error => {
+                console.error('Güncelleme Hatası:', error);
+            });
+
+        return res.status(200).json({
+            Code: 200,
+            Status: 'OK',
+            Message: 'Attribute updated',
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            Code: 500,
+            Status: 'FALSE',
+            Message: 'Internal Server Error',
+            Data: {}
+        });
+    }
+});
+
+router.delete('/DeleteAttribute', verifyToken("659452d5f508cdc5c4e4660b"), async (req, res) => {
+    try {
+        const attributeId = req.query._id;
+        const deletedDocument = await attributeModel.findByIdAndRemove(attributeId);
+        if (deletedDocument) {
+            // AttributeGroups modelindeki ilgili belgeleri güncelle
+            const updateResult = await attributeGroupModel.updateMany(
+                { Attributes: attributeId },
+                { $pullAll: { Attributes: [attributeId] } }
+            );
+
+            if (updateResult.modifiedCount > 0) {
+                res.status(200).json({
+                    Code: 200,
+                    Status: 'OK',
+                    Message: 'Belge Başarıyla Silindi ve AttributeGroups Güncellendi.',
+                    Data: deletedDocument
+                });
+            } else {
+                console.log('AttributeGroups Güncellenemedi.');
+                res.status(500).json({
+                    Code: 500,
+                    Status: 'FALSE',
+                    Message: 'AttributeGroups Güncelleme Hatası',
+                    Data: {}
+                });
+            }
+        } else {
+            res.status(404).json({
+                Code: 404,
+                Status: 'FALSE',
+                Message: 'Belge Bulunamadı.',
+                Data: {}
+            });
+        }
+    } catch (error) {
+        console.error('Silme Hatası:', error);
+        res.status(500).json({
+            Code: 500,
+            Status: 'FALSE',
+            Message: 'Internal Server Error',
+            Data: {}
+        });
+    }
+});
+
+router.post("/AttributesTableData", verifyToken("65945466f508cdc5c4e46650"), async (req, res) => {
     try {
         const { page, pageSize, orderBy, order } = req.body;
         const sortObject = {};
@@ -146,68 +351,9 @@ router.post("/AttributesTableData", verifyToken("654d44613c6a0da0725273ab"), asy
 });
 
 
-
-router.post('/CreateAttribute', verifyToken("654d44643c6a0da0725273ae"), async (req, res) => {
-    //Check is attribute created already before ?
-    var attribute = await attributeModel.find({
-        Code: req.body.Code
-    })
-    if (attribute.length > 0) return res.status(200).send({
-        Code: 401,
-        Status: 'FALSE',
-        Message: 'This Attribute code already taken.',
-        Data: {}
-    })
-    const newAttribute = new attributeModel(
-        {
-            Name: req.body.Name,
-            Code: req.body.Code,
-            Type: req.body.Type,
-            ItemTypes: req.body.ItemTypes,
-            AttributeGroups: req.body.AttributeGroups,
-            AttributeValidations: req.body.AttributeValidations,
-            isRequired: req.body.isRequired,
-            isActive: req.body.isActive,
-            CreatedUser: req.user.userId,
-            UpdatedUser: req.user.userId
-        }
-    )
-    newAttribute.save();
-    const newAttributeId = newAttribute._id;
-
-    if (req.body.AttributeGroups.length > 0) {
-        // req.body.AttributeGroups içindeki her bir öğe üzerinde dön
-        for (const item of req.body.AttributeGroups) {
-            // attributeGroupModel'den belgeyi bul ve bekleyerek al
-            const attrGroup = await attributeGroupModel.findOne({ '_id': item });
-            // attrGroup bulunamadıysa devam et
-            if (!attrGroup) {
-                console.error(`Attribute Group with id ${item} not found.`);
-                continue;
-            }
-            // Array'e newAttributeId'yi ekle
-            attrGroup.Attributes.push(newAttributeId);
-            // Değişiklikleri kaydet
-            await attrGroup.save();
-        }
-    }
-
-
-    return res.status(200).send({
-        Code: 200,
-        Status: 'OK',
-        Message: 'Attribute Saved',
-        Data: newAttribute
-    })
-})
-module.exports = router;
-
-
-
-
 /////////////////////////////////////////////////////////////////////////// ATTRIBUTE VALIDATIONS //////////////////////////////////////////////////////////////////////////////////////////
 
-router.get("/getAttributeValidation", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+router.get("/getAttributeValidation", verifyToken("65945466f508cdc5c4e46650"), async (req, res) => {
     const attributeValidations = await attributeValidationsModel.find({ 'AttributeType': req.query.Type })
         .populate({
             path: 'CreatedUser UpdatedUser',
@@ -219,9 +365,7 @@ router.get("/getAttributeValidation", verifyToken("654d44613c6a0da0725273ab"), a
     return res.status(200).send(attributeValidations);
 });
 
-
-
-router.post('/CreateAttributeValidations', verifyToken("654d44643c6a0da0725273ae"), async (req, res) => {
+router.post('/CreateAttributeValidations', verifyToken("65945466f508cdc5c4e46650"), async (req, res) => {
     //Check is attribute created already before ?
     var attributeValidations = await attributeValidationsModel.find({
         Code: req.body.Code
@@ -243,15 +387,11 @@ router.post('/CreateAttributeValidations', verifyToken("654d44643c6a0da0725273ae
         Status: 'OK',
         Message: 'Attribute Validations Saved'
     })
-})
-module.exports = router;
-
-
-
+});
 
 /////////////////////////////////////////////////////////////////////////// ATTRIBUTE GROUPS //////////////////////////////////////////////////////////////////////////////////////////
 
-router.get("/getAttributeGroup", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+router.get("/getAttributeGroup", verifyToken("6594546af508cdc5c4e46653"), async (req, res) => {
     const attributeGroup = await attributeGroupModel.findOne({ '_id': '656f9513f5434a5b05cc5614' })
         .populate({
             path: 'CreatedUser UpdatedUser',
@@ -308,7 +448,7 @@ router.get("/getAttributeGroup", verifyToken("654d44613c6a0da0725273ab"), async 
     return res.status(200).send(response);
 });
 
-router.get("/getAttributeGroups", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+router.get("/getAttributeGroups", verifyToken("6594546af508cdc5c4e46653"), async (req, res) => {
     const allAttributeGroups = await attributeGroupModel.find()
         .populate({
             path: 'CreatedUser UpdatedUser',
@@ -364,10 +504,7 @@ router.get("/getAttributeGroups", verifyToken("654d44613c6a0da0725273ab"), async
     return res.status(200).send(response);
 });
 
-
-
-
-router.post('/CreateAttributeGroup', verifyToken("654d44643c6a0da0725273ae"), async (req, res) => {
+router.post('/CreateAttributeGroup', verifyToken("65945314f508cdc5c4e4660e"), async (req, res) => {
     //Check is attribute created already before ?
     var attributeGroup = await attributeGroupModel.find({
         Code: req.body.Code
@@ -390,11 +527,9 @@ router.post('/CreateAttributeGroup', verifyToken("654d44643c6a0da0725273ae"), as
         Status: 'OK',
         Message: 'Attribute Group Saved'
     })
-})
-module.exports = router;
+});
 
-
-router.post("/AttributeGroupsTableData", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+router.post("/AttributeGroupsTableData", verifyToken("6594546af508cdc5c4e46653"), async (req, res) => {
     try {
         const { page, pageSize, orderBy, order } = req.body;
         const sortObject = {};
@@ -433,3 +568,5 @@ router.post("/AttributeGroupsTableData", verifyToken("654d44613c6a0da0725273ab")
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+module.exports = router;

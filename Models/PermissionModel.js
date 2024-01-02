@@ -7,7 +7,19 @@ const permissionsSchema = new Schema({
         type: String,
         required: true
     },
+    Code: {
+        type: String,
+        required: true
+    },
     Description: {
+        type: String,
+        required: true
+    },
+    Type: {
+        type: String,
+        required: true
+    },
+    Group: {
         type: String,
         required: true
     },

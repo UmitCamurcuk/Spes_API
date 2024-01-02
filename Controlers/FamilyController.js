@@ -9,7 +9,7 @@ const verifyToken = require("../Middlewares/auth");
 const AttributeGroupsModel = require("../Models/AttributeGroupsModel");
 const AttributeValidationsModel = require("../Models/AttributeValidationsModel");
 
-router.get("/getFamilies", verifyToken("654d44733c6a0da0725273b7"), async (req, res) => {
+router.get("/getFamilies", verifyToken("6594546ef508cdc5c4e46656"), async (req, res) => {
     const allFamilies = await familyModel.find()
         .populate({
             path: 'CreatedUser UpdatedUser',
@@ -80,7 +80,7 @@ router.get("/getFamilies", verifyToken("654d44733c6a0da0725273b7"), async (req, 
     return res.status(200).send(response);
 });
 
-router.get("/getFamily", verifyToken("654d44733c6a0da0725273b7"), async (req, res) => {
+router.get("/getFamily", verifyToken("6594546ef508cdc5c4e46656"), async (req, res) => {
     const item = await familyModel.findOne({ 'Code': req.query.Code })
         .populate({
             path: 'CreatedUser UpdatedUser',
@@ -93,7 +93,7 @@ router.get("/getFamily", verifyToken("654d44733c6a0da0725273b7"), async (req, re
     return res.status(200).send(item);
 });
 
-router.post('/CreateFamily', verifyToken("654d44763c6a0da0725273ba"), async (req, res) => {
+router.post('/CreateFamily', verifyToken("65945335f508cdc5c4e46617"), async (req, res) => {
     //Check is attribute created already before ?
     var family = await familyModel.find({
         Code: req.body.Code

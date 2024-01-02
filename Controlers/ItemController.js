@@ -6,7 +6,7 @@ const itemModel = require('../Models/ItemModel')
 const userModel = require('../Models/UserModel');
 const verifyToken = require("../Middlewares/auth");
 
-router.get("/getItems", verifyToken("654d44293c6a0da072527393"), async (req, res) => {
+router.get("/getItems", verifyToken("65945475f508cdc5c4e46659"), async (req, res) => {
     const allItems = await itemModel.find()
         .populate({
             path: 'CreatedUser UpdatedUser',
@@ -33,7 +33,7 @@ router.get("/getItems", verifyToken("654d44293c6a0da072527393"), async (req, res
     return res.status(200).send(allItems);
 });
 
-router.get("/getItem", verifyToken("654d44293c6a0da072527393"), async (req, res) => {
+router.get("/getItem", verifyToken("65945475f508cdc5c4e46659"), async (req, res) => {
     const item = await itemModel.findOne({ 'Code': req.query.Code })
         .populate({
             path: 'CreatedUser UpdatedUser',
@@ -51,7 +51,7 @@ router.get("/getItem", verifyToken("654d44293c6a0da072527393"), async (req, res)
     return res.status(200).send(item);
 });
 
-router.post('/CreateItem', verifyToken('654d442f3c6a0da072527396'), async (req, res) => {
+router.post('/CreateItem', verifyToken('65945384f508cdc5c4e4662a'), async (req, res) => {
     //Check is attribute created already before ?
     //Permission CODE = 654ce0d4b5cfb614f61bae21
     var item = await itemModel.find({
@@ -76,8 +76,7 @@ router.post('/CreateItem', verifyToken('654d442f3c6a0da072527396'), async (req, 
     return res.status(200).send('User Saved')
 })
 
-
-router.post("/ItemsTableData", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+router.post("/ItemsTableData", verifyToken("65945475f508cdc5c4e46659"), async (req, res) => {
     try {
         const { page, pageSize, orderBy, order } = req.body;
         const sortObject = {};

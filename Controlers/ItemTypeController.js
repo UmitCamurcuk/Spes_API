@@ -9,7 +9,7 @@ const itemTypeModel = require('../Models/ItemTypeModel');
 const verifyToken = require("../Middlewares/auth");
 const RoleModel = require("../Models/RoleModel");
 
-router.get("/getItemTypes", verifyToken("654d443c3c6a0da07252739f"), async (req, res) => {
+router.get("/getItemTypes", verifyToken("6594547bf508cdc5c4e4665c"), async (req, res) => {
     const allItemTypes = await itemTypeModel.find()
         .populate({
             path: 'CreatedUser UpdatedUser',
@@ -26,7 +26,7 @@ router.get("/getItemTypes", verifyToken("654d443c3c6a0da07252739f"), async (req,
     return res.status(200).send(allItemTypes);
 });
 
-router.get("/getItemType", verifyToken("654d443c3c6a0da07252739f"), async (req, res) => {
+router.get("/getItemType", verifyToken("6594547bf508cdc5c4e4665c"), async (req, res) => {
     const itemType = await itemTypeModel.findOne({ 'Code': req.query.Code })
         .populate({
             path: 'CreatedUser UpdatedUser',
@@ -144,7 +144,7 @@ router.get("/getItemType", verifyToken("654d443c3c6a0da07252739f"), async (req, 
     return res.status(200).send(response);
 });
 
-router.post("/ItemTypesTableData", verifyToken("654d44613c6a0da0725273ab"), async (req, res) => {
+router.post("/ItemTypesTableData", verifyToken("6594547bf508cdc5c4e4665c"), async (req, res) => {
     try {
         const { page, pageSize, orderBy, order } = req.body;
         const sortObject = {};
@@ -192,7 +192,7 @@ router.post("/ItemTypesTableData", verifyToken("654d44613c6a0da0725273ab"), asyn
 
 });
 
-router.post('/CreateItemType', verifyToken("654d443f3c6a0da0725273a2"), async (req, res) => {
+router.post('/CreateItemType', verifyToken("659453a2f508cdc5c4e46633"), async (req, res) => {
     //Check is attribute created already before ?
     var itemType = await itemTypeModel.find({
         Code: req.body.Code
@@ -213,8 +213,6 @@ router.post('/CreateItemType', verifyToken("654d443f3c6a0da0725273a2"), async (r
     newItemType.save();
     return res.status(200).send('ItemType Saved')
 })
-
-
 
 router.get("/getNavigationLinks", verifyToken(null), async (req, res) => {
     const itemType = await itemTypeModel.find({ 'ShowOnNavbar': true })
