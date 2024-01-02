@@ -71,7 +71,7 @@ router.get("/getAttribute", verifyToken("654d44613c6a0da0725273ab"), async (req,
         .populate({
             path: 'AttributeValidations.Validation',
             model: attributeValidationsModel,
-            select: 'Name Code Type -_id'
+            select: 'Name Code Type'
         })
         .exec();
     if (!attribute) return res.status(200).send('There is no Attributes')
@@ -79,13 +79,14 @@ router.get("/getAttribute", verifyToken("654d44613c6a0da0725273ab"), async (req,
     const tempAttrVal = [];
     attribute.AttributeValidations.forEach(attrValidation => {
         tempAttrVal.push({
+            _id: attrValidation.Validation._id,
             Name: attrValidation.Validation.Name,
             Code: attrValidation.Validation.Code,
             Type: attrValidation.Validation.Type,
             Value: attrValidation.Value
         })
     })
-     const  response = {
+    const response = {
         Name: attribute.Name,
         Code: attribute.Code,
         Type: attribute.Type,
@@ -407,7 +408,7 @@ router.post("/AttributeGroupsTableData", verifyToken("654d44613c6a0da0725273ab")
             }
         });
         const allAttributeGroups = await attributeGroupModel.find(filterCriteria)
-            .sort({ CreatedAt: -1 })
+            .sort(sortObject)
             .skip((page - 1) * pageSize)
             .limit(parseInt(pageSize))
             .populate({
