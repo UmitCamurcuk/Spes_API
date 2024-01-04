@@ -2,13 +2,22 @@ const jwt = require("jsonwebtoken");
 
 const config = process.env;
 
-function search(nameKey, myArray) {
-  for (let i = 0; i < myArray.length; i++) {
-    if (myArray[i]._id === nameKey) {
-      return true
-    } else return false;
-  }
-}
+const generateRefreshToken = (user) => {
+  const refreshToken = jwt.sign(
+    {
+        userId: user._id,
+        username: user.Name,
+        userlastname: user.LastName,
+        userrole: user.Role.Permissions
+    },
+    process.env.API_SECRET_KET,
+    {
+        expiresIn: "15m",
+    }
+);
+  // refreshToken'i güvenli bir şekilde saklayın, veritabanında ya da başka bir güvenli ortamda
+  return refreshToken;
+};
 
 const verifyToken = (permissionCode) => {
   return (req, res, next) => {
@@ -27,7 +36,7 @@ const verifyToken = (permissionCode) => {
     }
     try {
       if (permissionCode !== null) {
-        const isPermission = req.user.userrole.find(item => item._id === permissionCode);
+        const isPermission = req.user.userrole[0].Permissions.find(item => item._id === permissionCode);
         if (!isPermission) { throw new Error('Permission Denied !'); }
       }
       // Break this try, even though there is no exception here.

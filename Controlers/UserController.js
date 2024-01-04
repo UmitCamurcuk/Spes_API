@@ -118,7 +118,7 @@ router.post("/SystemUsersTableData", verifyToken(null), async (req, res) => {
             .skip((page - 1) * pageSize)
             .limit(parseInt(pageSize))
             .populate({
-                path: 'Role',
+                path: 'Roles',
                 model: roleModel,
                 select: 'Name Description -_id',
                 populate: {

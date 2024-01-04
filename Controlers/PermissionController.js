@@ -12,7 +12,7 @@ router.get("/getPermissions", verifyToken("65945485f508cdc5c4e46662"), async (re
             model: userModel,
             select: 'Name LastName Role',
             populate: {
-                path: 'Role',
+                path: 'Roles',
                 model: roleModel,
                 select: 'Name -_id',
             }

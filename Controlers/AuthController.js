@@ -10,9 +10,9 @@ const permissionModel = require('../Models/PermissionModel');
 router.post("/Login", async (req, res) => {
     const user = await userModel.findOne({ 'UserName': req.body.UserName , 'Password' : req.body.Password })
         .populate({
-            path: 'Role',
+            path: 'Roles',
             model: roleModel,
-            select: '_id',
+            select: 'Name Description _id',
             populate: {
                 path: 'Permissions',
                 model: permissionModel,
@@ -30,7 +30,7 @@ router.post("/Login", async (req, res) => {
             userId: user._id,
             username: user.Name,
             userlastname: user.LastName,
-            userrole: user.Role.Permissions
+            userrole: user.Roles
         },
         process.env.API_SECRET_KET,
         {

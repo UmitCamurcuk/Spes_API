@@ -26,10 +26,10 @@ const userSchema = new Schema({
     BirthDate: {
         type: Date,
     },
-    Role: {
+    Roles: [{
         type: ObjectId,
         ref: 'Roles'
-    },
+    }],
     Phone: {
         type: String,
     },

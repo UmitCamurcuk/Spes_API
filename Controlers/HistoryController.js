@@ -14,7 +14,7 @@ router.get("/getHistory", verifyToken(null), async (req, res) => {
             model: UserModel,
             select: 'Name LastName Role -_id',
             populate: {
-                path: 'Role',
+                path: 'Roles',
                 model: RoleModel,
                 select: 'Name -_id',
             }

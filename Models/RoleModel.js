@@ -15,6 +15,14 @@ const rolesSchema = new Schema({
         type: ObjectId,
         ref: 'Permissions'
     }],
+    Users: [{
+        type: ObjectId,
+        ref: 'users'
+    }],
+    isActive: {
+        type: Boolean,
+        required: false
+    },
     CreatedUser: {
         type: ObjectId,
         ref: 'users'
