@@ -23,7 +23,7 @@ router.get("/getRoles", verifyToken(null), async (req, res) => {
 });
 
 router.get("/getRole", verifyToken(null), async (req, res) => {
-    const role = await roleModel.findOne({ 'Name': req.query.Name })
+    const role = await roleModel.findOne({ '_id': req.query._id })
         .populate({
             path: 'CreatedUser UpdatedUser',
             model: userModel,
@@ -31,8 +31,7 @@ router.get("/getRole", verifyToken(null), async (req, res) => {
         })
         .populate({
             path: 'Permissions',
-            model: userModel,
-            select: 'Name Description'
+            model: permissionModel,
         })
         .exec();
     if (!role) return res.status(200).send('There is no Role')

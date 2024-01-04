@@ -7,7 +7,13 @@ const verifyToken = require("../Middlewares/auth");
 
 
 router.get("/getUsers", verifyToken(null), async (req, res) => {
-    const allUsers = await userModel.find()
+    let query = {}; // Boş bir sorgu nesnesi oluşturun
+
+    if (req.query.Role) {
+        query.Role = req.query.Role; // Eğer Role belirtilmişse, sorgu nesnesine ekleyin
+    }
+
+    const allUsers = await userModel.find(query)
         .populate({
             path: 'Role',
             model: roleModel,
@@ -24,6 +30,7 @@ router.get("/getUsers", verifyToken(null), async (req, res) => {
 
     return res.status(200).send(allUsers);
 });
+
 
 router.get("/getUser", verifyToken(null), async (req, res) => {
     const user = await userModel.find({ 'Name': req.query.Name })
