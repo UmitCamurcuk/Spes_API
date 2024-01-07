@@ -4,6 +4,7 @@ const userModel = require('../Models/UserModel');
 const roleModel = require('../Models/RoleModel');
 const permissionModel = require('../Models/PermissionModel');
 const verifyToken = require("../Middlewares/auth");
+const HistoryModel = require("../Models/HistoryModel");
 
 
 router.get("/getUsers", verifyToken(null), async (req, res) => {
@@ -33,11 +34,11 @@ router.get("/getUsers", verifyToken(null), async (req, res) => {
 
 
 router.get("/getUser", verifyToken(null), async (req, res) => {
-    const user = await userModel.find({ 'Name': req.query.Name })
+    const user = await userModel.find({ '_id': req.query._id })
         .populate({
-            path: 'Role',
+            path: 'Roles',
             model: roleModel,
-            select: 'Name Description -_id',
+            select: 'Name Description',
             populate: {
                 path: 'Permissions',
                 model: permissionModel,
@@ -47,13 +48,13 @@ router.get("/getUser", verifyToken(null), async (req, res) => {
         .exec();
     if (!user) return res.status(200).send('There is no Item')
 
-    return res.status(200).send(user);
+    return res.status(200).send(user[0]);
 });
 
 router.get("/getMyUserInfo", verifyToken(null), async (req, res) => {
     const allUsers = await userModel.find({ _id: req.user.userId })
         .populate({
-            path: 'Role',
+            path: 'Roles',
             model: roleModel,
             select: 'Name Description -_id',
             populate: {
@@ -90,14 +91,50 @@ router.post('/CreateUser', verifyToken(null), async (req, res) => {
             Password: req.body.Password,
             Email: req.body.Email,
             BirthDate: req.body.BirthDate,
-            Role: req.body.Role,
+            Roles: req.body.Roles,
             Phone: req.body.Phone,
             Location: req.body.Location,
             isActive: req.body.isActive,
         }
     )
     newUser.save();
-    return res.status(200).send('User Saved')
+
+    // Update roles with the new user
+    const rolesToUpdate = await roleModel.find({ _id: { $in: req.body.Roles } });
+    rolesToUpdate.forEach(async (role) => {
+        role.Users.push(newUser._id);
+        await role.save();
+    });
+
+
+    const newUserHistory = new HistoryModel({
+        entityId: newUser._id,
+        entityType: 'User',
+        Description: 'User Creation',
+        Code: '1001',
+        ChangedValues: {
+            Name: { oldValue: null, newValue: req.body.Name },
+            LastName: { oldValue: null, newValue: req.body.LastName },
+            UserName: { oldValue: null, newValue: req.body.UserName },
+            Email: { oldValue: null, newValue: req.body.Email },
+            BirthDate: { oldValue: null, newValue: req.body.BirthDate },
+            Phone: { oldValue: null, newValue: req.body.Phone },
+            Location: { oldValue: null, newValue: req.body.Location },
+            Roles: { oldValue: [], newValue: req.body.RoleNames },
+        },
+        Comment: null,
+        CreatedUser: req.user.userId,
+        UpdatedUser: req.user.userId
+    })
+
+    newUserHistory.save();
+
+    return res.status(200).send({
+        Code: 200,
+        Status: 'OK',
+        Message: 'User Created',
+        Data: newUser,
+    })
 })
 
 router.post("/SystemUsersTableData", verifyToken(null), async (req, res) => {
